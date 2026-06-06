@@ -15,6 +15,7 @@ from aegisflow.agents.incident_agents import (
     triage_agent,
 )
 from aegisflow.models import AlertPayload, IncidentDiagnosis, MitigationPlan
+from aegisflow.simulation.control import should_force_health_check_failure
 from aegisflow.telemetry import activity_span, run_traced_agent
 
 logger = logging.getLogger(__name__)
@@ -133,6 +134,13 @@ async def verify_service_health_activity(service_name: str) -> bool:
             normalized,
         )
         await asyncio.sleep(POST_MITIGATION_HEALTH_DELAY_SECONDS)
+
+        if should_force_health_check_failure(normalized):
+            logger.warning(
+                "Simulation control forcing post-mitigation health failure for service %r.",
+                normalized,
+            )
+            return False
 
         environment = SystemEnvironment.default_for_service(normalized)
         state = environment.get_infrastructure_state(normalized)

@@ -19,6 +19,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+providers = [
+    "anthropic>=0.49.0",
+    "openai>=1.54.0",
+    "xai-sdk>=1.0.0",
+]
 telemetry = [
     "opentelemetry-exporter-otlp-proto-http>=1.39.0",
 ]
@@ -31,6 +36,10 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aegisflow"]
+
+[project.scripts]
+aegisflow-worker = "aegisflow.worker:main"
+aegisflow-simulate = "aegisflow.simulation_runner:main"
 
 [tool.ruff]
 line-length = 100

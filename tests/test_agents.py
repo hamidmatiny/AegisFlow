@@ -21,8 +21,13 @@ from pydantic_ai.models.test import TestModel
 
 from aegisflow.agents.deps import SystemEnvironment
 from aegisflow.agents.incident_agents import (
+    ANTHROPIC_DEFAULT_MODEL,
+    OPENAI_DEFAULT_MODEL,
+    UNCONFIGURED_MODEL,
+    XAI_DEFAULT_MODEL,
     build_mitigation_prompt,
     build_triage_prompt,
+    get_default_model,
     mitigation_agent,
     triage_agent,
 )
@@ -34,6 +39,48 @@ from aegisflow.models import (
 )
 
 models.ALLOW_MODEL_REQUESTS = False
+
+
+class TestModelSelection:
+    def test_get_default_model_prefers_anthropic(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-anthropic-key")
+        monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
+        monkeypatch.setenv("XAI_API_KEY", "test-xai-key")
+
+        assert get_default_model() == ANTHROPIC_DEFAULT_MODEL
+
+    def test_get_default_model_falls_back_to_openai(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
+        monkeypatch.delenv("XAI_API_KEY", raising=False)
+
+        assert get_default_model() == OPENAI_DEFAULT_MODEL
+
+    def test_get_default_model_falls_back_to_xai(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.setenv("XAI_API_KEY", "test-xai-key")
+
+        assert get_default_model() == XAI_DEFAULT_MODEL
+
+    def test_get_default_model_uses_test_placeholder_without_keys(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("XAI_API_KEY", raising=False)
+
+        assert get_default_model() == UNCONFIGURED_MODEL
 
 
 @pytest.fixture

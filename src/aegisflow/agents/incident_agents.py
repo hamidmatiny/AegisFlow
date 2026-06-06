@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from pydantic_ai import Agent, RunContext, format_as_xml
@@ -11,6 +12,11 @@ from aegisflow.agents.deps import SystemEnvironment
 from aegisflow.models import AlertPayload, IncidentDiagnosis, MitigationPlan
 
 logger = logging.getLogger(__name__)
+
+ANTHROPIC_DEFAULT_MODEL = "anthropic:claude-3-5-sonnet"
+OPENAI_DEFAULT_MODEL = "openai:gpt-4o"
+XAI_DEFAULT_MODEL = "xai:grok-2"
+UNCONFIGURED_MODEL = "test:aegisflow-unconfigured"
 
 TRIAGE_SYSTEM_PROMPT = """\
 You are AegisFlow's incident triage specialist.
@@ -35,8 +41,37 @@ Rules:
 - Return a single structured MitigationPlan object as your final answer.
 """
 
+
+def _is_env_key_present(name: str) -> bool:
+    """Return whether an environment variable is set to a non-empty value."""
+    value = os.getenv(name)
+    return value is not None and value.strip() != ""
+
+
+def get_default_model() -> str:
+    """Select the default PydanticAI model string from available provider API keys."""
+    if _is_env_key_present("ANTHROPIC_API_KEY"):
+        logger.info("Selected Anthropic model %r.", ANTHROPIC_DEFAULT_MODEL)
+        return ANTHROPIC_DEFAULT_MODEL
+    if _is_env_key_present("OPENAI_API_KEY"):
+        logger.info("Selected OpenAI model %r.", OPENAI_DEFAULT_MODEL)
+        return OPENAI_DEFAULT_MODEL
+    if _is_env_key_present("XAI_API_KEY"):
+        logger.info("Selected xAI model %r.", XAI_DEFAULT_MODEL)
+        return XAI_DEFAULT_MODEL
+
+    logger.warning(
+        "No LLM provider API key found. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or "
+        "XAI_API_KEY. Using deferred model placeholder %r for test-safe initialization.",
+        UNCONFIGURED_MODEL,
+    )
+    return UNCONFIGURED_MODEL
+
+
+_DEFAULT_MODEL = get_default_model()
+
 triage_agent: Agent[SystemEnvironment, IncidentDiagnosis] = Agent(
-    "anthropic:claude-3-5-sonnet",
+    _DEFAULT_MODEL,
     deps_type=SystemEnvironment,
     output_type=IncidentDiagnosis,
     system_prompt=TRIAGE_SYSTEM_PROMPT,
@@ -44,7 +79,7 @@ triage_agent: Agent[SystemEnvironment, IncidentDiagnosis] = Agent(
 )
 
 mitigation_agent: Agent[SystemEnvironment, MitigationPlan] = Agent(
-    "anthropic:claude-3-5-sonnet",
+    _DEFAULT_MODEL,
     deps_type=SystemEnvironment,
     output_type=MitigationPlan,
     system_prompt=MITIGATION_SYSTEM_PROMPT,
