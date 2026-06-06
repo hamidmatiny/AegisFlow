@@ -1,0 +1,4 @@
+# Temporal dynamic configuration for local SQL-backed development.
+system.forceSearchAttributesCacheRefreshOnRead:
+  - value: true
+    constraints: {}

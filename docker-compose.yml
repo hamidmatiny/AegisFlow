@@ -1,0 +1,94 @@
+services:
+  postgresql:
+    image: postgres:16-alpine
+    container_name: aegisflow-postgresql
+    environment:
+      POSTGRES_USER: aegisflow
+      POSTGRES_PASSWORD: aegisflow
+      POSTGRES_DB: aegisflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - aegisflow-postgresql-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegisflow -d aegisflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - aegisflow
+
+  temporal-postgresql:
+    image: postgres:16-alpine
+    container_name: aegisflow-temporal-postgresql
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    volumes:
+      - aegisflow-temporal-postgresql-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - aegisflow
+
+  temporal:
+    image: temporalio/auto-setup:1.25.2
+    container_name: aegisflow-temporal
+    depends_on:
+      temporal-postgresql:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: temporal-postgresql
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"
+    volumes:
+      - ./infra/temporal/dynamicconfig:/etc/temporal/config/dynamicconfig
+    networks:
+      - aegisflow
+
+  temporal-ui:
+    image: temporalio/ui:2.31.2
+    container_name: aegisflow-temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:8080
+    ports:
+      - "8080:8080"
+    networks:
+      - aegisflow
+
+  localstack:
+    image: localstack/localstack:4.0.3
+    container_name: aegisflow-localstack
+    environment:
+      SERVICES: s3,sqs
+      DEBUG: "0"
+      DOCKER_HOST: unix:///var/run/docker.sock
+      AWS_DEFAULT_REGION: us-east-1
+    ports:
+      - "4566:4566"
+    volumes:
+      - aegisflow-localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - aegisflow
+
+networks:
+  aegisflow:
+    name: aegisflow
+
+volumes:
+  aegisflow-postgresql-data:
+  aegisflow-temporal-postgresql-data:
+  aegisflow-localstack-data:

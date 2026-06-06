@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aegisflow"
+version = "0.1.0"
+description = "Autonomous multi-agent AI incident response engine"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "AegisFlow Team" }]
+dependencies = [
+    "pydantic>=2.10.0,<3",
+    "pydantic-ai>=0.1.0",
+    "temporalio>=1.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.14.0",
+    "pytest>=8.3.0",
+    "ruff>=0.8.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aegisflow"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "ANN",
+    "B",
+    "E",
+    "F",
+    "I",
+    "N",
+    "UP",
+    "W",
+]
+ignore = [
+    "ANN401",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["aegisflow"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_no_return = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
