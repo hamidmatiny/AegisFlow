@@ -10,10 +10,13 @@ from temporalio.client import Client
 from temporalio.contrib.pydantic import pydantic_data_converter
 from temporalio.worker import Worker
 
+from aegisflow.telemetry import build_temporal_otel_interceptor, configure_telemetry
 from aegisflow.workflows.activities import (
     apply_mitigation_action_activity,
+    rollback_mitigation_action_activity,
     run_mitigation_activity,
     run_triage_activity,
+    verify_service_health_activity,
 )
 from aegisflow.workflows.constants import TASK_QUEUE
 from aegisflow.workflows.incident_workflow import IncidentOrchestrationWorkflow
@@ -26,6 +29,7 @@ DEFAULT_TEMPORAL_ADDRESS = "localhost:7233"
 async def run_worker(*, temporal_address: str = DEFAULT_TEMPORAL_ADDRESS) -> None:
     """Connect to Temporal and run the AegisFlow worker until interrupted."""
     logging.basicConfig(level=logging.INFO)
+    configure_telemetry()
 
     client = await Client.connect(
         temporal_address,
@@ -39,7 +43,10 @@ async def run_worker(*, temporal_address: str = DEFAULT_TEMPORAL_ADDRESS) -> Non
             run_triage_activity,
             run_mitigation_activity,
             apply_mitigation_action_activity,
+            verify_service_health_activity,
+            rollback_mitigation_action_activity,
         ],
+        interceptors=[build_temporal_otel_interceptor()],
     )
 
     logger.info(

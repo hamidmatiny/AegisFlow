@@ -28,6 +28,8 @@ class _StubResponses:
     triage: IncidentDiagnosis | None = None
     mitigation: MitigationPlan | None = None
     apply_result: bool = True
+    health_check_result: bool = True
+    rollback_called: bool = False
 
 
 @activity.defn(name="run_triage_activity")
@@ -50,6 +52,19 @@ async def stub_run_mitigation_activity(
 async def stub_apply_mitigation_action_activity(plan: MitigationPlan) -> bool:
     del plan
     return _StubResponses.apply_result
+
+
+@activity.defn(name="verify_service_health_activity")
+async def stub_verify_service_health_activity(service_name: str) -> bool:
+    del service_name
+    return _StubResponses.health_check_result
+
+
+@activity.defn(name="rollback_mitigation_action_activity")
+async def stub_rollback_mitigation_action_activity(plan: MitigationPlan) -> bool:
+    del plan
+    _StubResponses.rollback_called = True
+    return True
 
 
 @pytest.fixture
@@ -97,6 +112,8 @@ def configure_stub_responses(
     _StubResponses.triage = triage_diagnosis
     _StubResponses.mitigation = mitigation_plan
     _StubResponses.apply_result = True
+    _StubResponses.health_check_result = True
+    _StubResponses.rollback_called = False
 
 
 def _create_worker(environment: WorkflowEnvironment) -> Worker:
@@ -108,6 +125,8 @@ def _create_worker(environment: WorkflowEnvironment) -> Worker:
             stub_run_triage_activity,
             stub_run_mitigation_activity,
             stub_apply_mitigation_action_activity,
+            stub_verify_service_health_activity,
+            stub_rollback_mitigation_action_activity,
         ],
     )
 
@@ -139,6 +158,7 @@ class TestIncidentOrchestrationWorkflow:
         assert result.status is IncidentWorkflowStatus.RESOLVED
         assert result.diagnosis == triage_diagnosis
         assert result.mitigation_plan == mitigation_plan
+        assert "service health verified" in result.message.lower()
 
     async def test_escalation_when_approval_times_out(
         self,

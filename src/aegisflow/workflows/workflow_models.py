@@ -15,6 +15,16 @@ class IncidentWorkflowStatus(StrEnum):
     RESOLVED = "resolved"
     ESCALATED = "escalated"
     FAILED = "failed"
+    FAILED_AND_ROLLED_BACK = "failed_and_rolled_back"
+
+
+class CompensationStep(BaseModel):
+    """Serializable compensation action executed during saga rollback."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    activity_name: str = Field(min_length=1)
+    mitigation_plan: MitigationPlan | None = None
 
 
 class IncidentWorkflowResult(BaseModel):
@@ -28,3 +38,4 @@ class IncidentWorkflowResult(BaseModel):
     diagnosis: IncidentDiagnosis | None = None
     mitigation_plan: MitigationPlan | None = None
     message: str = Field(min_length=1)
+    compensation_executed: bool = False

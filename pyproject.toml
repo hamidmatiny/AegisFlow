@@ -11,12 +11,17 @@ requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "AegisFlow Team" }]
 dependencies = [
+    "opentelemetry-api>=1.39.0",
+    "opentelemetry-sdk>=1.39.0",
     "pydantic>=2.10.0,<3",
     "pydantic-ai>=0.1.0",
     "temporalio>=1.9.0",
 ]
 
 [project.optional-dependencies]
+telemetry = [
+    "opentelemetry-exporter-otlp-proto-http>=1.39.0",
+]
 dev = [
     "mypy>=1.14.0",
     "pytest>=8.3.0",
