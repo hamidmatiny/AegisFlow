@@ -17,6 +17,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.models.test import TestModel
 
 from aegisflow.agents.deps import SystemEnvironment
@@ -24,9 +25,11 @@ from aegisflow.agents.incident_agents import (
     ANTHROPIC_DEFAULT_MODEL,
     OPENAI_DEFAULT_MODEL,
     UNCONFIGURED_MODEL,
+    XAI_API_BASE_URL,
     XAI_DEFAULT_MODEL,
     build_mitigation_prompt,
     build_triage_prompt,
+    describe_agent_model,
     get_default_model,
     mitigation_agent,
     triage_agent,
@@ -70,7 +73,11 @@ class TestModelSelection:
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         monkeypatch.setenv("XAI_API_KEY", "test-xai-key")
 
-        assert get_default_model() == XAI_DEFAULT_MODEL
+        model = get_default_model()
+        assert isinstance(model, OpenAIModel)
+        assert model.model_name == XAI_DEFAULT_MODEL
+        assert model.base_url.rstrip("/") == XAI_API_BASE_URL.rstrip("/")
+        assert describe_agent_model(model) == XAI_DEFAULT_MODEL
 
     def test_get_default_model_uses_test_placeholder_without_keys(
         self,

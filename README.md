@@ -212,7 +212,7 @@ OpenTelemetry spans appear in the **worker terminal** (not the simulation runner
 | `AEGISFLOW_SIMULATION_STATE_PATH` | Shared simulation control JSON path |
 | `ANTHROPIC_API_KEY` | Select Anthropic (`anthropic:claude-3-5-sonnet`) |
 | `OPENAI_API_KEY` | Select OpenAI (`openai:gpt-4o`) |
-| `XAI_API_KEY` | Select xAI Grok (`xai:grok-2`) |
+| `XAI_API_KEY` | Select xAI Grok via OpenAI-compatible API (`grok-4.3` at `https://api.x.ai/v1`) |
 
 ## Project layout
 

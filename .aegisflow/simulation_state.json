@@ -1,5 +1,5 @@
 {
-  "force_health_check_failure": false,
+  "force_health_check_failure": true,
   "service_name": "payments-api",
-  "scenario": "success"
+  "scenario": "chaos"
 }

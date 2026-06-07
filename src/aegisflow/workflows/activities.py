@@ -11,6 +11,7 @@ from aegisflow.agents.deps import SystemEnvironment
 from aegisflow.agents.incident_agents import (
     build_mitigation_prompt,
     build_triage_prompt,
+    describe_agent_model,
     mitigation_agent,
     triage_agent,
 )
@@ -35,7 +36,7 @@ async def run_triage_activity(payload: AlertPayload) -> IncidentDiagnosis:
             agent_result = await run_traced_agent(
                 "incident.triage",
                 agent_name="triage_agent",
-                model_name=str(triage_agent.model),
+                model_name=describe_agent_model(triage_agent.model),
                 runner=lambda: triage_agent.run(
                     build_triage_prompt(payload),
                     deps=environment,
@@ -72,7 +73,7 @@ async def run_mitigation_activity(
             agent_result = await run_traced_agent(
                 "incident.mitigation",
                 agent_name="mitigation_agent",
-                model_name=str(mitigation_agent.model),
+                model_name=describe_agent_model(mitigation_agent.model),
                 runner=lambda: mitigation_agent.run(
                     build_mitigation_prompt(alert, diagnosis),
                     deps=environment,

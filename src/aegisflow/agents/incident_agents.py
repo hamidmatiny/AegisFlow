@@ -7,6 +7,9 @@ import os
 from typing import Any
 
 from pydantic_ai import Agent, RunContext, format_as_xml
+from pydantic_ai.models import Model
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 from aegisflow.agents.deps import SystemEnvironment
 from aegisflow.models import AlertPayload, IncidentDiagnosis, MitigationPlan
@@ -15,8 +18,11 @@ logger = logging.getLogger(__name__)
 
 ANTHROPIC_DEFAULT_MODEL = "anthropic:claude-3-5-sonnet"
 OPENAI_DEFAULT_MODEL = "openai:gpt-4o"
-XAI_DEFAULT_MODEL = "xai:grok-2"
+XAI_DEFAULT_MODEL = "grok-4.3"
+XAI_API_BASE_URL = "https://api.x.ai/v1"
 UNCONFIGURED_MODEL = "test:aegisflow-unconfigured"
+
+AgentModelSelection = str | Model
 
 TRIAGE_SYSTEM_PROMPT = """\
 You are AegisFlow's incident triage specialist.
@@ -48,8 +54,24 @@ def _is_env_key_present(name: str) -> bool:
     return value is not None and value.strip() != ""
 
 
-def get_default_model() -> str:
-    """Select the default PydanticAI model string from available provider API keys."""
+def _build_xai_openai_model() -> OpenAIModel:
+    """Build an OpenAI-compatible xAI chat model using the configured API key."""
+    api_key = os.getenv("XAI_API_KEY")
+    if api_key is None or not api_key.strip():
+        msg = "XAI_API_KEY must be set before constructing the xAI model."
+        raise RuntimeError(msg)
+
+    return OpenAIModel(
+        XAI_DEFAULT_MODEL,
+        provider=OpenAIProvider(
+            base_url=XAI_API_BASE_URL,
+            api_key=api_key.strip(),
+        ),
+    )
+
+
+def get_default_model() -> AgentModelSelection:
+    """Select the default PydanticAI model from available provider API keys."""
     if _is_env_key_present("ANTHROPIC_API_KEY"):
         logger.info("Selected Anthropic model %r.", ANTHROPIC_DEFAULT_MODEL)
         return ANTHROPIC_DEFAULT_MODEL
@@ -57,8 +79,12 @@ def get_default_model() -> str:
         logger.info("Selected OpenAI model %r.", OPENAI_DEFAULT_MODEL)
         return OPENAI_DEFAULT_MODEL
     if _is_env_key_present("XAI_API_KEY"):
-        logger.info("Selected xAI model %r.", XAI_DEFAULT_MODEL)
-        return XAI_DEFAULT_MODEL
+        logger.info(
+            "Selected xAI OpenAI-compatible model %r at %s.",
+            XAI_DEFAULT_MODEL,
+            XAI_API_BASE_URL,
+        )
+        return _build_xai_openai_model()
 
     logger.warning(
         "No LLM provider API key found. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or "
@@ -66,6 +92,18 @@ def get_default_model() -> str:
         UNCONFIGURED_MODEL,
     )
     return UNCONFIGURED_MODEL
+
+
+def describe_agent_model(model: str | Model | None) -> str:
+    """Return a stable model label for logging and telemetry."""
+    if model is None:
+        return UNCONFIGURED_MODEL
+    if isinstance(model, str):
+        return model
+    model_name = getattr(model, "model_name", None)
+    if isinstance(model_name, str):
+        return model_name
+    return type(model).__name__
 
 
 _DEFAULT_MODEL = get_default_model()
